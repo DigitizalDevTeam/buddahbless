@@ -7,9 +7,12 @@ import Home from "@/pages/Home";
 import Cart from "@/pages/Cart";
 import Merch from "@/pages/Merch";
 import Checkout from "@/pages/Checkout";
+import OrderConfirmation from "@/pages/OrderConfirmation";
+import Orders, { OrderDetail } from "@/pages/Orders";
 import NotFound from "@/pages/not-found";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 function Router() {
   return (
@@ -18,6 +21,9 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/merch" component={Merch} />
       <Route path="/checkout" component={Checkout} />
+      <Route path="/order-confirmation" component={OrderConfirmation} />
+      <Route path="/orders" component={Orders} />
+      <Route path="/orders/:id" component={OrderDetail} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -31,6 +37,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <OfflineBanner />
           </TooltipProvider>
         </CartProvider>
       </AuthProvider>

@@ -1,17 +1,20 @@
 import { Link } from "wouter";
-import { ShoppingBag, Music, Menu, X } from "lucide-react";
+import { ShoppingBag, Music, Menu } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { LoginModal } from "./LoginModal";
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const { cartCount } = useCart();
+  const { isLoggedIn } = useAuth();
 
   const navItems = [
     { label: "MERCH", href: "/merch" },
+    ...(isLoggedIn ? [{ label: "MY ORDERS", href: "/orders" }] : []),
     { label: "MUSIC", href: "/#music" },
     { label: "TOUR", href: "/#tour" },
     { label: "CONTACT", href: "/#" },

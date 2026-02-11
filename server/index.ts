@@ -1,7 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import passport from "passport";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { configurePassport } from "./auth";
 
 const app = express();
 const httpServer = createServer(app);
@@ -60,6 +63,25 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
+  configurePassport();
+
+  app.use(
+    session({
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "lax",
+      },
+    })
+  );
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -90,14 +112,15 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const listenOptions: { port: number; host: string; reusePort?: boolean } = {
+    port,
+    host: "0.0.0.0",
+  };
+  // reusePort is not supported on Windows
+  if (process.platform !== "win32") {
+    listenOptions.reusePort = true;
+  }
+  httpServer.listen(listenOptions, () => {
+    log(`serving on port ${port}`);
+  });
 })();

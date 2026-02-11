@@ -1,15 +1,19 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-interface User {
-  name: string;
+export interface User {
+  id: string;
   email: string;
-  avatar?: string;
+  name: string;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (provider: string, userData?: Partial<User>) => void;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  signup: (email: string, password: string, name?: string) => Promise<{ error?: string; fieldErrors?: Record<string, string[]> }>;
+  logout: () => Promise<void>;
+  loginWithGoogle: () => void;
   isLoggedIn: boolean;
 }
 
@@ -17,25 +21,78 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (provider: string, userData?: Partial<User>) => {
-    // Mock login functionality
-    const mockUser: User = {
-      name: userData?.name || "Guest User",
-      email: userData?.email || "guest@example.com",
-      avatar: userData?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Buddah" 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.user) setUser(data.user);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-    
-    setUser(mockUser);
-    console.log(`Logged in with ${provider}`);
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { error: data.error || "Login failed" };
+    }
+    if (data.user) setUser(data.user);
+    return {};
   };
 
-  const logout = () => {
+  const signup = async (email: string, password: string, name?: string) => {
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password, name }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        error: Array.isArray(data.error?.email) ? data.error.email[0] : data.error?.email ?? data.error ?? "Sign up failed",
+        fieldErrors: data.error,
+      };
+    }
+    if (data.user) setUser(data.user);
+    return {};
+  };
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setUser(null);
   };
 
+  const loginWithGoogle = () => {
+    window.location.href = "/api/auth/google";
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoggedIn: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        signup,
+        logout,
+        loginWithGoogle,
+        isLoggedIn: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
