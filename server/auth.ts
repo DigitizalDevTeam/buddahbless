@@ -38,7 +38,7 @@ export function configurePassport() {
     )
   );
 
-  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientId = process.env.;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (googleClientId && googleClientSecret) {

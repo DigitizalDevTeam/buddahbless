@@ -5,7 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-export type OrderInsert = Pick<Order, "user_id" | "stripe_session_id" | "email" | "total" | "status" | "created_at">;
+export type OrderInsert = Pick<Order, "user_id" | "stripe_session_id" | "email" | "name" | "phone" | "address" | "city" | "postalCode" | "country" | "total" | "status" | "created_at">;
 export type OrderItemInsert = Pick<OrderItem, "order_id" | "name" | "price" | "image" | "quantity" | "size">;
 
 export interface IStorage {
@@ -68,6 +68,12 @@ export class MemStorage implements IStorage {
       user_id: orderInsert.user_id ?? null,
       stripe_session_id: orderInsert.stripe_session_id,
       email: orderInsert.email,
+      name: orderInsert.name,
+      phone: orderInsert.phone,
+      address: orderInsert.address,
+      city: orderInsert.city,
+      postalCode: orderInsert.postalCode,
+      country: orderInsert.country,
       total: orderInsert.total,
       status: orderInsert.status,
       created_at: orderInsert.created_at,
@@ -158,6 +164,12 @@ export class DrizzleStorage implements IStorage {
         user_id: orderInsert.user_id ?? null,
         stripe_session_id: orderInsert.stripe_session_id,
         email: orderInsert.email,
+        name: orderInsert.name,
+        phone: orderInsert.phone,
+        address: orderInsert.address,
+        city: orderInsert.city,
+        postalCode: orderInsert.postalCode,
+        country: orderInsert.country,
         total: orderInsert.total,
         status: orderInsert.status,
         created_at: orderInsert.created_at,

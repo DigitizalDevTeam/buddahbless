@@ -7,7 +7,7 @@ import { toSafeUser } from "./auth";
 import { signupSchema, loginSchema } from "@shared/schema";
 import Stripe from "stripe";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY ;
 
 export async function registerRoutes(
   httpServer: Server,
@@ -91,20 +91,38 @@ export async function registerRoutes(
     if (!session_id || !stripeSecretKey) {
       return res.status(400).json({ error: "Missing session_id or Stripe not configured." });
     }
+  
     try {
       const stripe = new Stripe(stripeSecretKey);
-      const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ["line_items.data.price.product"] });
+  
+      const session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ["line_items.data.price.product"]
+      });
+  
       if (session.payment_status !== "paid") {
         return res.status(400).json({ error: "Session not paid." });
       }
+  
+      // check if order already exists
       const existing = await storage.getOrderBySessionId(session_id);
       if (existing) {
         return res.json({ order: existing });
       }
+  
       const lineItems = session.line_items?.data ?? [];
       const userId = req.isAuthenticated() && req.user ? (req.user as import("@shared/schema").User).id : null;
+  
+      // customer info
       const email = (session.customer_email as string) || session.customer_details?.email || "guest@unknown";
+      const name = session.metadata?.name || session.customer_details?.name || "Guest";
+      const phone = session.metadata?.phone || session.customer_details?.phone || "";
+      const address = session.metadata?.address || session.customer_details?.address?.line1 || "";
+      const city = session.metadata?.city || session.customer_details?.address?.city || "";
+      const postalCode = session.metadata?.postalCode || session.customer_details?.address?.postal_code || "";
+      const country = session.metadata?.country || session.customer_details?.address?.country || "US";
+  
       const total = session.amount_total ?? 0;
+
       const items = lineItems.map((li) => {
         const product = li.price?.product as Stripe.Product | undefined;
         const name = (product?.name as string) ?? li.description ?? "Item";
@@ -113,17 +131,26 @@ export async function registerRoutes(
         const image = product?.images?.[0] ?? null;
         return { name, price, image, quantity: li.quantity ?? 1, size: null };
       });
+  
+      // create order in DB
       const order = await storage.createOrder(
         {
           user_id: userId,
           stripe_session_id: session_id,
           email,
+          name,
+          phone,
+          address,
+          city,
+          postalCode,
+          country,
           total,
           status: "paid",
           created_at: new Date().toISOString(),
         },
         items
       );
+  
       return res.json({ order });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create order";
@@ -131,6 +158,7 @@ export async function registerRoutes(
       return res.status(500).json({ error: message });
     }
   });
+  
 
   app.get("/api/orders", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -166,10 +194,11 @@ export async function registerRoutes(
       });
     }
 
-    const { items, successUrl, cancelUrl } = req.body as {
+    const { items, successUrl, cancelUrl, customer } = req.body as {
       items?: Array<{ name: string; price: string; image: string; quantity: number; size?: string }>;
       successUrl?: string;
       cancelUrl?: string;
+      customer?: { email: string; name: string; phone: string; address: string; city: string; postalCode: string; country: string };
     };
 
     if (!items?.length || !successUrl || !cancelUrl) {
@@ -203,10 +232,13 @@ export async function registerRoutes(
 
     try {
       const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
         mode: "payment",
         line_items,
         success_url: successUrlWithSession,
         cancel_url: cancelUrl,
+        customer_email: customer?.email,
+        metadata: customer,
       });
 
       return res.json({ url: session.url });

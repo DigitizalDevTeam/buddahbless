@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { Link } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
-
+ 
 export default function Cart() {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -166,20 +166,12 @@ export default function Cart() {
                 </div>
               </div>
 
-              <Button
-                className="w-full bg-primary text-black hover:bg-primary/90 font-bold rounded-none h-14 text-lg"
-                onClick={handleStripeCheckout}
-                disabled={isRedirecting}
+              <Link
+                className="flex items-center justify-center w-full bg-primary text-black hover:bg-primary/90 font-bold rounded-none h-14 text-lg"
+                href={'/checkout'}
               >
-                {isRedirecting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    REDIRECTING TO STRIPE…
-                  </>
-                ) : (
-                  "PAY WITH STRIPE"
-                )}
-              </Button>
+                CHECKOUT
+              </Link>
               
               <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
                 <Lock className="w-3 h-3" />

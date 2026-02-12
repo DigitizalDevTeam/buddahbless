@@ -7,6 +7,12 @@ type OrderItem = { name: string; price: string; image: string | null; quantity: 
 type Order = {
   id: string;
   email: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
   total: number;
   status: string;
   created_at: string;
@@ -196,6 +202,10 @@ export function OrderDetail() {
           {order.status}
         </p>
 
+        <p className="text-muted-foreground mb-4">Name: {order.name}</p>
+        <p className="text-muted-foreground mb-4">Email: {order.email}</p>
+        <p className="text-muted-foreground mb-4">Phone: {order.phone}</p>
+        <p className="text-muted-foreground mb-4">Address: {order.address} · {order.city} · {order.postalCode} · {order.country}</p>
         <div className="bg-white/5 border border-white/10 p-6 mb-8">
           <ul className="space-y-4 mb-6">
             {order.items.map((item, i) => (
